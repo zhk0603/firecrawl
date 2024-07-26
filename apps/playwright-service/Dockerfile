@@ -4,7 +4,11 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN echo "deb http://mirrors.aliyun.com/debian/ bookworm main contrib non-free" > /etc/apt/sources.list && \
+    echo "deb http://mirrors.aliyun.com/debian/ bookworm-updates main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb http://mirrors.aliyun.com/debian/ bookworm-backports main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb http://mirrors.aliyun.com/debian-security bookworm-security main contrib non-free" >> /etc/apt/sources.list && \
+    apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libstdc++6
 
@@ -14,7 +18,8 @@ WORKDIR /app
 COPY requirements.txt ./
 
 # Remove py which is pulled in by retry, py is not needed and is a CVE
-RUN pip install --no-cache-dir --upgrade -r requirements.txt && \
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
+    pip install --no-cache-dir --upgrade -r requirements.txt && \
     pip uninstall -y py && \
     playwright install chromium && playwright install-deps chromium && \
     ln -s /usr/local/bin/supervisord /usr/bin/supervisord

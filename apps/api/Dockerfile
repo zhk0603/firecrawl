@@ -19,8 +19,12 @@ RUN pnpm run build
 
 
 FROM base
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y chromium chromium-sandbox && \
+RUN echo "deb http://mirrors.aliyun.com/debian/ bookworm main contrib non-free" > /etc/apt/sources.list && \
+    echo "deb http://mirrors.aliyun.com/debian/ bookworm-updates main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb http://mirrors.aliyun.com/debian/ bookworm-backports main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb http://mirrors.aliyun.com/debian-security bookworm-security main contrib non-free" >> /etc/apt/sources.list && \
+    apt-get update -qq && \
+    apt-get install --no-install-recommends -y apt-transport-https ca-certificates chromium chromium-sandbox && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 COPY --from=prod-deps /app/node_modules /app/node_modules
 COPY --from=build /app /app
