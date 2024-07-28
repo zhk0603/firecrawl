@@ -12,6 +12,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-l
 FROM base AS build
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
+RUN pnpm config set registry https://registry.npmmirror.com
 RUN pnpm install
 RUN pnpm run build
 
