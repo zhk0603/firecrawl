@@ -114,7 +114,7 @@ function getScrapingFallbackOrder(
   );
 
   const scrapersInOrder = Array.from(uniqueScrapers);
-  return scrapersInOrder as (typeof baseScrapers)[number][];
+  return ['playwright'] // scrapersInOrder as (typeof baseScrapers)[number][];
 }
 
 
