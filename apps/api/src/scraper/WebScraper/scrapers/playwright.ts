@@ -104,7 +104,7 @@ export async function scrapWithPlaywright(
       logParams.error_message = error.message || error;
       Logger.debug(`⛏️ Playwright: Failed to fetch url: ${url} | Error: ${error}`);
     }
-    return { content: "", pageStatusCode: null, pageError: logParams.error_message };
+    return { content: "", pageStatusCode: error?.response?.status || null, pageError: logParams.error_message };
   } finally {
     const endTime = Date.now();
     logParams.time_taken_seconds = (endTime - logParams.startTime) / 1000;

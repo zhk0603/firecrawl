@@ -88,13 +88,7 @@ function getScrapingFallbackOrder(
     !process.env.USE_DB_AUTHENTICATION ? undefined : "fire-engine",
     !process.env.USE_DB_AUTHENTICATION ? undefined : "fire-engine;chrome-cdp",
     "scrapingBee",
-<<<<<<< HEAD
-    "fire-engine",
-    "fire-engine;chrome-cdp",
-    "playwright",
-=======
     process.env.USE_DB_AUTHENTICATION ? undefined : "playwright",
->>>>>>> 72eebb0aea67156275ff094d7542e4f22f8700e6
     "scrapingBeeLoad",
     "fetch",
   ].filter(Boolean);
@@ -120,7 +114,7 @@ function getScrapingFallbackOrder(
   );
 
   const scrapersInOrder = Array.from(uniqueScrapers);
-  return ['playwright'] // scrapersInOrder as (typeof baseScrapers)[number][];
+  return scrapersInOrder as (typeof baseScrapers)[number][];
 }
 
 
@@ -210,7 +204,6 @@ export async function scrapSingleUrl(
             pageOptions.waitFor,
             pageOptions.headers
           );
-          Logger.debug(`scrapWithPlaywright response>> ${JSON.stringify(response)}`)
           scraperResponse.text = response.content;
           scraperResponse.metadata.pageStatusCode = response.pageStatusCode;
           scraperResponse.metadata.pageError = response.pageError;
