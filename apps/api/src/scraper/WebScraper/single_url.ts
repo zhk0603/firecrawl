@@ -114,6 +114,7 @@ function getScrapingFallbackOrder(
   );
 
   const scrapersInOrder = Array.from(uniqueScrapers);
+  Logger.debug("scrapersInOrder >> " + JSON.stringify(scrapSingleUrl))
   return scrapersInOrder as (typeof baseScrapers)[number][];
 }
 

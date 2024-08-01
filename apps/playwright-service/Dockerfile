@@ -1,16 +1,4 @@
-FROM python:3.11-slim
-
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
-
-RUN echo "deb http://mirrors.aliyun.com/debian/ bookworm main contrib non-free" > /etc/apt/sources.list && \
-    echo "deb http://mirrors.aliyun.com/debian/ bookworm-updates main contrib non-free" >> /etc/apt/sources.list && \
-    echo "deb http://mirrors.aliyun.com/debian/ bookworm-backports main contrib non-free" >> /etc/apt/sources.list && \
-    echo "deb http://mirrors.aliyun.com/debian-security bookworm-security main contrib non-free" >> /etc/apt/sources.list && \
-    apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libstdc++6
+FROM firecrawl:playwright-service-base
 
 WORKDIR /app
 
@@ -23,16 +11,6 @@ RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && 
     pip uninstall -y py && \
     playwright install chromium && playwright install-deps chromium && \
     ln -s /usr/local/bin/supervisord /usr/bin/supervisord
-
-# Cleanup for CVEs and size reduction
-# https://github.com/tornadoweb/tornado/issues/3107
-# xserver-common and xvfb included by playwright installation but not needed after
-# perl-base is part of the base Python Debian image but not needed for Danswer functionality
-# perl-base could only be removed with --allow-remove-essential
-
-
-
-
 
 COPY . ./
 
