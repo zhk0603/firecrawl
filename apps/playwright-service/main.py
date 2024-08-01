@@ -64,6 +64,7 @@ async def root(body: UrlModel):
     Returns:
         JSONResponse: The HTML content of the page.
     """
+    print('body:', body)
     context = None
     if PROXY_SERVER and PROXY_USERNAME and PROXY_PASSWORD:
         context = await browser.new_context(

@@ -120,7 +120,7 @@ const isValidUrl = (urlString: string): boolean => {
 };
 
 const scrapePage = async (page: any, url: string, waitUntil: 'load' | 'networkidle', waitAfterLoad: number, timeout: number, checkSelector: string | undefined) => {
-  console.log(`Navigating to ${url} with waitUntil: ${waitUntil} and timeout: ${timeout}ms`);
+  console.log(`Navigating to ${url} with waitUntil: ${waitUntil} , timeout: ${timeout}ms`);
   const response = await page.goto(url, { waitUntil, timeout });
 
   if (waitAfterLoad > 0) {
@@ -184,7 +184,7 @@ app.post('/scrape', async (req: Request, res: Response) => {
     pageContent = result.content;
     pageStatusCode = result.status;
   } catch (error) {
-    console.log('Strategy 1 failed, attempting strategy 2: Wait until networkidle');
+    console.log('Strategy 1 failed, attempting strategy 2: Wait until networkidle', error);
     try {
       // Strategy 2: Wait until networkidle
       const result = await scrapePage(page, url, 'networkidle', wait_after_load, timeout, check_selector);

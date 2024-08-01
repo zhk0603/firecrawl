@@ -136,11 +136,13 @@ export async function scrapSingleUrl(
   existingHtml: string = ""
 ): Promise<Document> {
   urlToScrap = urlToScrap.trim();
+  Logger.debug(`urlToScrap: ${urlToScrap}`);
 
   const attemptScraping = async (
     url: string,
     method: (typeof baseScrapers)[number]
   ) => {
+    Logger.debug(`attemptScraping method: ${method}`)
     let scraperResponse: {
       text: string;
       screenshot: string;
@@ -202,6 +204,7 @@ export async function scrapSingleUrl(
             pageOptions.waitFor,
             pageOptions.headers
           );
+          Logger.debug(`scrapWithPlaywright response>> ${JSON.stringify(response)}`)
           scraperResponse.text = response.content;
           scraperResponse.metadata.pageStatusCode = response.pageStatusCode;
           scraperResponse.metadata.pageError = response.pageError;

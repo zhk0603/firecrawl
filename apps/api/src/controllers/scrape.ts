@@ -61,6 +61,8 @@ export async function scrapeHelper(
     return error;
   }
 
+  console.debug('docs', docs)
+
   // make sure doc.content is not empty
   let filteredDocs = docs.filter(
     (doc: { content?: string }) => doc.content && doc.content.trim().length > 0
