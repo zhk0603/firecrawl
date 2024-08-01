@@ -85,10 +85,16 @@ function getScrapingFallbackOrder(
   });
 
   let defaultOrder = [
+    !process.env.USE_DB_AUTHENTICATION ? undefined : "fire-engine",
+    !process.env.USE_DB_AUTHENTICATION ? undefined : "fire-engine;chrome-cdp",
     "scrapingBee",
+<<<<<<< HEAD
     "fire-engine",
     "fire-engine;chrome-cdp",
     "playwright",
+=======
+    process.env.USE_DB_AUTHENTICATION ? undefined : "playwright",
+>>>>>>> 72eebb0aea67156275ff094d7542e4f22f8700e6
     "scrapingBeeLoad",
     "fetch",
   ].filter(Boolean);
@@ -274,7 +280,7 @@ export async function scrapSingleUrl(
     const insertedLogId = await logInsertPromise;
     ScrapeEvents.updateScrapeResult(insertedLogId, {
       response_size: scraperResponse.text.length,
-      success: !(scraperResponse.metadata.pageStatusCode && scraperResponse.metadata.pageStatusCode >= 400) && !!text,
+      success: !(scraperResponse.metadata.pageStatusCode && scraperResponse.metadata.pageStatusCode >= 400) && !!text && (text.trim().length >= 100),
       error: scraperResponse.metadata.pageError,
       response_code: scraperResponse.metadata.pageStatusCode,
       time_taken: Date.now() - timer,
