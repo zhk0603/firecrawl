@@ -5,7 +5,7 @@ export const defaultTimeout = 45000; // 45 seconds
 export const defaultPageOptions = {
   onlyMainContent: false,
   includeHtml: false,
-  waitFor: 30000,
+  waitFor: 0,
   screenshot: false,
   parsePDF: true
 };

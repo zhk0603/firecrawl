@@ -139,7 +139,7 @@ export class WebCrawler {
     maxDepth: number = 10
   ): Promise<{ url: string, html: string }[]> {
 
-    Logger.debug(`Crawler starting with ${this.initialUrl}`);
+    Logger.debug(`Crawler starting with ${this.initialUrl} limit: ${limit} maxCrawledLinks: ${this.maxCrawledLinks} maxDepth: ${maxDepth}`);
     // Fetch and parse robots.txt
     try {
       const response = await axios.get(this.robotsTxtUrl, { timeout: axiosTimeout });
@@ -184,48 +184,45 @@ export class WebCrawler {
     inProgress?: (progress: Progress) => void,
   ): Promise<{ url: string, html: string }[]> {
     const queue = async.queue(async (task: string, callback) => {
-      Logger.debug(`Crawling ${task}`);
-      if (this.crawledUrls.size >= Math.min(this.maxCrawledLinks, this.limit)) {
+      try {
+        if (this.crawledUrls.size >= Math.min(this.maxCrawledLinks, this.limit)) {
+          if (callback && typeof callback === "function") {
+            callback();
+          }
+          return;
+        }
+        Logger.debug(`Crawling ${task}`);
+        const newUrls = await this.crawl(task, pageOptions);
+        newUrls.forEach((page) => this.crawledUrls.set(page.url, page.html));
+  
+        if (inProgress) {
+          inProgress({
+            current: this.crawledUrls.size,
+            total: Math.min(this.maxCrawledLinks, this.limit),
+            status: "SCRAPING",
+            currentDocumentUrl: newUrls.length > 0 ? newUrls[newUrls.length - 1].url : task,
+          });
+        }
+  
+        // Push new URLs to the queue
+        queue.push(
+          newUrls.map((p) => p.url).filter(
+            (url) =>
+              !this.visited.has(url) && this.robots.isAllowed(url, "FireCrawlAgent")
+          ),
+          (err) => {
+            if (err) Logger.error(`🐂 Error pushing URLs to the queue: ${err}`);
+          }
+        );
+      } catch (error) {
+        Logger.error(`Error crawling ${task}: ${error}`);
+      } finally {
         if (callback && typeof callback === "function") {
           callback();
         }
-        return;
-      }
-      const newUrls = await this.crawl(task, pageOptions);
-      // add the initial url if not already added
-      // if (this.visited.size === 1) {
-      //   let normalizedInitial = this.initialUrl;
-      //   if (!normalizedInitial.endsWith("/")) {
-      //     normalizedInitial = normalizedInitial + "/";
-      //   }
-      //   if (!newUrls.some(page => page.url === this.initialUrl)) {
-      //     newUrls.push({ url: this.initialUrl, html: "" });
-      //   }
-      // }
-
-      newUrls.forEach((page) => this.crawledUrls.set(page.url, page.html));
-      
-      if (inProgress && newUrls.length > 0) {
-        inProgress({
-          current: this.crawledUrls.size,
-          total: Math.min(this.maxCrawledLinks, this.limit),
-          status: "SCRAPING",
-          currentDocumentUrl: newUrls[newUrls.length - 1].url,
-        });
-      } else if (inProgress) {
-        inProgress({
-          current: this.crawledUrls.size,
-          total: Math.min(this.maxCrawledLinks, this.limit),
-          status: "SCRAPING",
-          currentDocumentUrl: task,
-        });
-      }
-      await this.crawlUrls(newUrls.map((p) => p.url), pageOptions, concurrencyLimit, inProgress);
-      if (callback && typeof callback === "function") {
-        callback();
       }
     }, concurrencyLimit);
-
+  
     Logger.debug(`🐂 Pushing ${urls.length} URLs to the queue`);
     queue.push(
       urls.filter(
@@ -236,6 +233,7 @@ export class WebCrawler {
         if (err) Logger.error(`🐂 Error pushing URLs to the queue: ${err}`);
       }
     );
+  
     await queue.drain();
     Logger.debug(`🐂 Crawled ${this.crawledUrls.size} URLs, Queue drained.`);
     return Array.from(this.crawledUrls.entries()).map(([url, html]) => ({ url, html }));
@@ -263,18 +261,10 @@ export class WebCrawler {
       let pageStatusCode: number;
       let pageError: string | undefined = undefined;
 
-      // If it is the first link, fetch with single url
-      if (this.visited.size === 1) {
-        const page = await scrapSingleUrl(this.jobId, url, { ...pageOptions, includeHtml: true });
-        content = page.html ?? "";
-        pageStatusCode = page.metadata?.pageStatusCode;
-        pageError = page.metadata?.pageError || undefined;
-      } else {
-        const response = await axios.get(url, { timeout: axiosTimeout });
-        content = response.data ?? "";
-        pageStatusCode = response.status;
-        pageError = response.statusText != "OK" ? response.statusText : undefined;
-      }
+      const page = await scrapSingleUrl(this.jobId, url, { ...pageOptions, includeHtml: true });
+      content = page.html ?? "";
+      pageStatusCode = page.metadata?.pageStatusCode;
+      pageError = page.metadata?.pageError || undefined;
 
       const $ = load(content);
       let links: { url: string, html: string, pageStatusCode?: number, pageError?: string }[] = [];
@@ -300,7 +290,7 @@ export class WebCrawler {
               !this.matchesExcludes(path) &&
               this.isRobotsAllowed(fullUrl)
             ) {
-              links.push({ url: fullUrl, html: content, pageStatusCode, pageError });
+              links.push({ url: fullUrl, html: "", pageStatusCode, pageError });
             }
           } else { // EXTERNAL LINKS
             if (
@@ -310,7 +300,7 @@ export class WebCrawler {
               !this.matchesExcludes(fullUrl, true) &&
               !this.isExternalMainPage(fullUrl)
             ) {
-              links.push({ url: fullUrl, html: content, pageStatusCode, pageError });
+              links.push({ url: fullUrl, html: "", pageStatusCode, pageError });
             }
           }
         }

@@ -62,6 +62,7 @@ export async function runWebScraper({
     const provider = new WebScraperDataProvider();
     if (mode === "crawl") {
       await provider.setOptions({
+        concurrentRequests: 8,
         jobId: bull_job_id,
         mode: mode,
         urls: [url],
@@ -71,6 +72,7 @@ export async function runWebScraper({
       });
     } else {
       await provider.setOptions({
+        concurrentRequests: 8,
         jobId: bull_job_id,
         mode: mode,
         urls: url.split(","),

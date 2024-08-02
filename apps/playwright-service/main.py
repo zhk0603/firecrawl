@@ -22,7 +22,7 @@ class UrlModel(BaseModel):
     """Model representing the URL and associated parameters for the request."""
     url: str
     wait_after_load: int = 0
-    timeout: int = 15000
+    timeout: int = 30000
     headers: dict = None
 
 browser: Browser = None
@@ -84,6 +84,12 @@ async def root(body: UrlModel):
         )
 
     page = await context.new_page()
+
+    if BLOCK_MEDIA:
+        # 明确禁止某些类型的资源加载
+        blocked_resource_types = ["stylesheet", "image", "media", "font", "other"]
+        await page.route("**/*", lambda route: route.abort() if route.request.resource_type in blocked_resource_types else route.continue_())
+
 
     # Set headers if provided
     if body.headers:
