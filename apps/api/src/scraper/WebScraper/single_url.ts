@@ -85,10 +85,10 @@ function getScrapingFallbackOrder(
   });
 
   let defaultOrder = [
-    !process.env.USE_DB_AUTHENTICATION ? undefined : "fire-engine",
-    !process.env.USE_DB_AUTHENTICATION ? undefined : "fire-engine;chrome-cdp",
+    !(process.env.USE_DB_AUTHENTICATION == "true") ? undefined : "fire-engine",
+    !(process.env.USE_DB_AUTHENTICATION == "true") ? undefined : "fire-engine;chrome-cdp",
     "scrapingBee",
-    process.env.USE_DB_AUTHENTICATION ? undefined : "playwright",
+    process.env.USE_DB_AUTHENTICATION == "true" ? undefined : "playwright",
     "scrapingBeeLoad",
     "fetch",
   ].filter(Boolean);
@@ -114,7 +114,13 @@ function getScrapingFallbackOrder(
   );
 
   const scrapersInOrder = Array.from(uniqueScrapers);
-  Logger.debug("scrapersInOrder >> " + JSON.stringify(scrapSingleUrl))
+  Logger.debug("defaultScraper >> " + defaultScraper)
+  Logger.debug("defaultOrder >> " + JSON.stringify(defaultOrder))
+  Logger.debug("USE_DB_AUTHENTICATION >> " + process.env.USE_DB_AUTHENTICATION)
+  Logger.debug("USE_DB_AUTHENTICATION tyep >> " + typeof process.env.USE_DB_AUTHENTICATION)
+  Logger.debug("filteredDefaultOrder >> " + JSON.stringify(filteredDefaultOrder))
+  Logger.debug("availableScrapers >> " + JSON.stringify(availableScrapers))
+  Logger.debug("scrapersInOrder >> " + JSON.stringify(scrapersInOrder))
   return scrapersInOrder as (typeof baseScrapers)[number][];
 }
 
