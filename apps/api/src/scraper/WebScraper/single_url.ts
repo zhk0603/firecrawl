@@ -114,13 +114,13 @@ function getScrapingFallbackOrder(
   );
 
   const scrapersInOrder = Array.from(uniqueScrapers);
-  Logger.debug("defaultScraper >> " + defaultScraper)
-  Logger.debug("defaultOrder >> " + JSON.stringify(defaultOrder))
-  Logger.debug("USE_DB_AUTHENTICATION >> " + process.env.USE_DB_AUTHENTICATION)
-  Logger.debug("USE_DB_AUTHENTICATION tyep >> " + typeof process.env.USE_DB_AUTHENTICATION)
-  Logger.debug("filteredDefaultOrder >> " + JSON.stringify(filteredDefaultOrder))
-  Logger.debug("availableScrapers >> " + JSON.stringify(availableScrapers))
-  Logger.debug("scrapersInOrder >> " + JSON.stringify(scrapersInOrder))
+  // Logger.debug("defaultScraper >> " + defaultScraper)
+  // Logger.debug("defaultOrder >> " + JSON.stringify(defaultOrder))
+  // Logger.debug("USE_DB_AUTHENTICATION >> " + process.env.USE_DB_AUTHENTICATION)
+  // Logger.debug("USE_DB_AUTHENTICATION tyep >> " + typeof process.env.USE_DB_AUTHENTICATION)
+  // Logger.debug("filteredDefaultOrder >> " + JSON.stringify(filteredDefaultOrder))
+  // Logger.debug("availableScrapers >> " + JSON.stringify(availableScrapers))
+  // Logger.debug("scrapersInOrder >> " + JSON.stringify(scrapersInOrder))
   return scrapersInOrder as (typeof baseScrapers)[number][];
 }
 

@@ -16,7 +16,6 @@ export class WebCrawler {
   private baseUrl: string;
   private includes: string[];
   private excludes: string[];
-  private maxCrawledLinks: number;
   private maxCrawledDepth: number;
   private visited: Set<string> = new Set();
   private crawledUrls: Map<string, string> = new Map();
@@ -32,7 +31,6 @@ export class WebCrawler {
     initialUrl,
     includes,
     excludes,
-    maxCrawledLinks = 10000,
     limit = 10000,
     generateImgAltText = false,
     maxCrawledDepth = 10,
@@ -43,7 +41,6 @@ export class WebCrawler {
     initialUrl: string;
     includes?: string[];
     excludes?: string[];
-    maxCrawledLinks?: number;
     limit?: number;
     generateImgAltText?: boolean;
     maxCrawledDepth?: number;
@@ -58,8 +55,6 @@ export class WebCrawler {
     this.limit = limit;
     this.robotsTxtUrl = `${this.baseUrl}/robots.txt`;
     this.robots = robotsParser(this.robotsTxtUrl, "");
-    // Deprecated, use limit instead
-    this.maxCrawledLinks = maxCrawledLinks ?? limit;
     this.maxCrawledDepth = maxCrawledDepth ?? 10;
     this.generateImgAltText = generateImgAltText ?? false;
     this.allowBackwardCrawling = allowBackwardCrawling ?? false;
@@ -139,7 +134,7 @@ export class WebCrawler {
     maxDepth: number = 10
   ): Promise<{ url: string, html: string }[]> {
 
-    Logger.debug(`Crawler starting with ${this.initialUrl} limit: ${limit} maxCrawledLinks: ${this.maxCrawledLinks} maxDepth: ${maxDepth}`);
+    Logger.debug(`Crawler starting with ${this.initialUrl} limit: ${limit} maxDepth: ${maxDepth}`);
     // Fetch and parse robots.txt
     try {
       const response = await axios.get(this.robotsTxtUrl, { timeout: axiosTimeout });
@@ -185,7 +180,7 @@ export class WebCrawler {
   ): Promise<{ url: string, html: string }[]> {
     const queue = async.queue(async (task: string, callback) => {
       try {
-        if (this.crawledUrls.size >= Math.min(this.maxCrawledLinks, this.limit)) {
+        if (this.crawledUrls.size >= this.limit) {
           if (callback && typeof callback === "function") {
             callback();
           }
@@ -193,12 +188,50 @@ export class WebCrawler {
         }
         Logger.debug(`Crawling ${task}`);
         const newUrls = await this.crawl(task, pageOptions);
-        newUrls.forEach((page) => this.crawledUrls.set(page.url, page.html));
+        const filterUrls = newUrls.filter((page) => {
+
+          const url = new URL(page.url.trim(), this.baseUrl);
+          const link = url.toString();
+          const path = url.pathname;
+          
+          const depth = getURLDepth(link);
+
+          if (depth > this.maxCrawledDepth) {
+            return false;
+          }
+
+          if(!this.matchesIncludes(path)) {
+            return false;
+          }
+          if(this.matchesExcludes(path)) {
+            return false;
+          }
+
+          const normalizedInitialUrl = new URL(this.initialUrl);
+          const normalizedLink = url;
+
+          if (!this.allowBackwardCrawling) {
+            if (!normalizedLink.pathname.startsWith(normalizedInitialUrl.pathname)) {
+              return false;
+            }
+          }
+
+          const isAllowed = this.robots.isAllowed(link, "FireCrawlAgent") ?? true;
+          if(!isAllowed) {
+            return false;
+          }
+
+          return true;
+        });
+
+        Logger.debug("filtered urls length:" + filterUrls.length);
+
+        filterUrls.forEach((page) => this.crawledUrls.set(page.url, page.html));
   
         if (inProgress) {
           inProgress({
             current: this.crawledUrls.size,
-            total: Math.min(this.maxCrawledLinks, this.limit),
+            total: this.limit,
             status: "SCRAPING",
             currentDocumentUrl: newUrls.length > 0 ? newUrls[newUrls.length - 1].url : task,
           });
@@ -206,7 +239,7 @@ export class WebCrawler {
   
         // Push new URLs to the queue
         queue.push(
-          newUrls.map((p) => p.url).filter(
+          filterUrls.map((p) => p.url).filter(
             (url) =>
               !this.visited.has(url) && this.robots.isAllowed(url, "FireCrawlAgent")
           ),
@@ -293,9 +326,7 @@ export class WebCrawler {
               links.push({ url: fullUrl, html: "", pageStatusCode, pageError });
             }
           } else { // EXTERNAL LINKS
-            if (
-              this.isInternalLink(url) &&
-              this.allowExternalContentLinks &&
+            if (this.allowExternalContentLinks &&
               !this.isSocialMediaOrEmail(fullUrl) &&
               !this.matchesExcludes(fullUrl, true) &&
               !this.isExternalMainPage(fullUrl)
@@ -336,13 +367,14 @@ export class WebCrawler {
   }
 
   private matchesExcludes(url: string, onlyDomains: boolean = false): boolean {
-    return this.excludes.some((pattern) => {
-      if (onlyDomains)
+    if (onlyDomains) {
         return this.matchesExcludesExternalDomains(url);
+    }
 
-      return this.excludes.some((pattern) => new RegExp(pattern).test(url));
-    });
-  }
+    if (this.excludes.length === 0 || this.excludes[0] == "") return false;
+    return this.excludes.some((pattern) => new RegExp(pattern).test(url));
+}
+
 
   // supported formats: "example.com/blog", "https://example.com", "blog.example.com", "example.com"
   private matchesExcludesExternalDomains(url: string) {

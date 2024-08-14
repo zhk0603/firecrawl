@@ -3,6 +3,7 @@ import { Queue as BullQueue } from "bull";
 import { Logger } from "../lib/logger";
 
 let webScraperQueue: BullQueue;
+let datasetQueue: BullQueue;
 
 export function getWebScraperQueue() {
   if (!webScraperQueue) {
@@ -13,11 +14,29 @@ export function getWebScraperQueue() {
         stalledInterval: 30 * 1000,
         maxStalledCount: 10,
       },
-      defaultJobOptions:{
-        attempts: 5
-      }
+      defaultJobOptions: {
+        attempts: 5,
+      },
     });
     Logger.info("Web scraper queue created");
   }
   return webScraperQueue;
+}
+
+export function getDatasetQueue() {
+  if (!datasetQueue) {
+    datasetQueue = new Queue("web-datasets", process.env.REDIS_URL, {
+      settings: {
+        lockDuration: 1 * 60 * 1000, // 1 minute in milliseconds,
+        lockRenewTime: 15 * 1000, // 15 seconds in milliseconds
+        stalledInterval: 30 * 1000,
+        maxStalledCount: 10,
+      },
+      defaultJobOptions: {
+        attempts: 5,
+      },
+    });
+    Logger.info("Datasets queue created");
+  }
+  return datasetQueue;
 }

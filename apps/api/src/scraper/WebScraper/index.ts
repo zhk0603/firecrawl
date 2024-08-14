@@ -172,7 +172,6 @@ export class WebScraperDataProvider {
       initialUrl: this.urls[0],
       includes: this.includes,
       excludes: this.excludes,
-      maxCrawledLinks: this.maxCrawledLinks,
       maxCrawledDepth: getAdjustedMaxDepth(this.urls[0], this.maxCrawledDepth),
       limit: this.limit,
       generateImgAltText: this.generateImgAltText,

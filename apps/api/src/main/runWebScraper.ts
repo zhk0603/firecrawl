@@ -12,6 +12,8 @@ import { Document } from "../lib/entities";
 import { supabase_service } from "../services/supabase";
 import { Logger } from "../lib/logger";
 import { ScrapeEvents } from "../lib/scrape-events";
+import { getDatasetQueue } from "../services/queue-service";
+import { v4 as uuidv4 } from "uuid";
 
 export async function startWebScraperPipeline({
   job,
@@ -32,6 +34,13 @@ export async function startWebScraperPipeline({
           partialDocs = partialDocs.slice(-50);
         }
         job.progress({ ...progress, partialDocs: partialDocs });
+
+        getDatasetQueue().add(
+          { ...progress.currentDocument, jobId: job.id.toString() },
+          {
+            jobId: uuidv4(),
+          }
+        );
       }
     },
     onSuccess: (result) => {
@@ -62,7 +71,7 @@ export async function runWebScraper({
     const provider = new WebScraperDataProvider();
     if (mode === "crawl") {
       await provider.setOptions({
-        concurrentRequests: 8,
+        concurrentRequests: Number(process.env.NUM_WORKERS_PER_QUEUE ?? 8),
         jobId: bull_job_id,
         mode: mode,
         urls: [url],
@@ -72,7 +81,7 @@ export async function runWebScraper({
       });
     } else {
       await provider.setOptions({
-        concurrentRequests: 8,
+        concurrentRequests: Number(process.env.NUM_WORKERS_PER_QUEUE ?? 8),
         jobId: bull_job_id,
         mode: mode,
         urls: url.split(","),

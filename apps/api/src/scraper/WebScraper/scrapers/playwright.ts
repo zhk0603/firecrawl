@@ -31,12 +31,14 @@ export async function scrapWithPlaywright(
   };
 
   try {
-    Logger.debug(`scrapWithPlaywright ${url}`)
+    // Logger.debug(`scrapWithPlaywright ${url}`)
     const reqParams = await generateRequestParams(url);
     // If the user has passed a wait parameter in the request, use that
     const waitParam = reqParams["params"]?.wait ?? waitFor;
     
-    Logger.debug(`reqParams: ${JSON.stringify(reqParams)} waitParam: ${waitParam} headers: ${JSON.stringify(headers)}`)
+    // Logger.debug(`reqParams: ${JSON.stringify(reqParams)} waitParam: ${waitParam} headers: ${JSON.stringify(headers)}`)
+
+    // Logger.debug("axios timeout:" + universalTimeout + waitParam)
 
     const response = await axios.post(
       process.env.PLAYWRIGHT_MICROSERVICE_URL,
