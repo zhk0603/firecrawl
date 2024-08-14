@@ -14,9 +14,9 @@ export function getWebScraperQueue() {
         stalledInterval: 30 * 1000,
         maxStalledCount: 10,
       },
-      defaultJobOptions: {
-        attempts: 5,
-      },
+      defaultJobOptions:{
+        attempts: 2
+      }
     });
     Logger.info("Web scraper queue created");
   }
