@@ -14,3 +14,5 @@ docker compose build
 docker compose up -d
 
 ## 推送到 ty hub
+
+docker compose push

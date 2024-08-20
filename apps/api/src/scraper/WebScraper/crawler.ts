@@ -148,6 +148,7 @@ export class WebCrawler {
       Logger.debug(`Fetching sitemap links from ${this.initialUrl}`);
       const sitemapLinks = await this.tryFetchSitemapLinks(this.initialUrl);
       if (sitemapLinks.length > 0) {
+        Logger.debug("Fetching sitemap links: " + sitemapLinks.length)
         let filteredLinks = this.filterLinks(sitemapLinks, limit, maxDepth);
         return filteredLinks.map(link => ({ url: link, html: "" }));
       }

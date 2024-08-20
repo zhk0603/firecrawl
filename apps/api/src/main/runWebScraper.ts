@@ -39,16 +39,31 @@ export async function startWebScraperPipeline({
           { ...progress.currentDocument, jobId: job.id.toString() },
           {
             jobId: uuidv4(),
+            status: "active",
           }
         );
       }
     },
     onSuccess: (result) => {
       Logger.debug(`🐂 Job completed ${job.id}`);
+
+      getDatasetQueue().add(
+        {
+          jobId: uuidv4(),
+          status: "completed",
+        }
+      );
+
       saveJob(job, result);
     },
     onError: (error) => {
       Logger.error(`🐂 Job failed ${job.id}`);
+      getDatasetQueue().add(
+        {
+          jobId: uuidv4(),
+          status: "failed",
+        }
+      );
       ScrapeEvents.logJobEvent(job, "failed");
       job.moveToFailed(error);
     },
