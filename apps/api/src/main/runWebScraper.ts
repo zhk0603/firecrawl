@@ -39,11 +39,16 @@ export async function startWebScraperPipeline({
         }
         // job.updateProgress({ ...progress, partialDocs: partialDocs });
 
+        const jobId = uuidv4();
         getDatasetQueue().add(
-          { ...progress.currentDocument, jobId: job.id.toString() },
+          jobId,
           {
-            jobId: uuidv4(),
+            ...progress.currentDocument,
+            jobId: job.id.toString(),
             status: "active",
+          },
+          {
+            jobId: jobId,
           }
         );
       }
@@ -51,10 +56,15 @@ export async function startWebScraperPipeline({
     onSuccess: (result, mode) => {
       Logger.debug(`🐂 Job completed ${job.id}`);
 
+      const jobId = uuidv4();
       getDatasetQueue().add(
+        jobId,
         {
-          jobId: uuidv4(),
+          jobId: job.id.toString(),
           status: "completed",
+        },
+        {
+          jobId: jobId,
         }
       );
 
@@ -62,10 +72,15 @@ export async function startWebScraperPipeline({
     },
     onError: (error) => {
       Logger.error(`🐂 Job failed ${job.id}`);
+      const jobId = uuidv4();
       getDatasetQueue().add(
+        jobId,
         {
-          jobId: uuidv4(),
+          jobId: job.id.toString(),
           status: "failed",
+        },
+        {
+          jobId: jobId,
         }
       );
       ScrapeEvents.logJobEvent(job, "failed");
@@ -135,7 +150,7 @@ export async function runWebScraper({
           }
         })
       : docs;
-    
+
     const billingResult = await billTeam(team_id, filteredDocs.length);
 
     if (!billingResult.success) {
@@ -176,12 +191,12 @@ const saveJob = async (job: Job, result: any, token: string, mode: string) => {
       // } catch (error) {
       //   // I think the job won't exist here anymore
       // }
-    // } else {
-    //   try {
-    //     await job.moveToCompleted(result, token, false);
-    //   } catch (error) {
-    //     // I think the job won't exist here anymore
-    //   }
+      // } else {
+      //   try {
+      //     await job.moveToCompleted(result, token, false);
+      //   } catch (error) {
+      //     // I think the job won't exist here anymore
+      //   }
     }
     ScrapeEvents.logJobEvent(job, "completed");
   } catch (error) {

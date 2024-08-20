@@ -88,7 +88,7 @@ function getScrapingFallbackOrder(
     !(process.env.USE_DB_AUTHENTICATION == "true") ? undefined : "fire-engine",
     !(process.env.USE_DB_AUTHENTICATION == "true") ? undefined : "fire-engine;chrome-cdp",
     "scrapingBee",
-    process.env.USE_DB_AUTHENTICATION == "true" ? undefined : "playwright",
+    "playwright",
     "scrapingBeeLoad",
     "fetch",
   ].filter(Boolean);

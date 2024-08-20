@@ -40,18 +40,7 @@ export function getDatasetQueue() {
     datasetQueue = new Queue("web-datasets",
       {
         connection: redisConnection,
-      }, 
-      {
-      settings: {
-        lockDuration: 1 * 60 * 1000, // 1 minute in milliseconds,
-        lockRenewTime: 15 * 1000, // 15 seconds in milliseconds
-        stalledInterval: 30 * 1000,
-        maxStalledCount: 10,
-      },
-      defaultJobOptions: {
-        attempts: 5,
-      },
-    });
+      });
     Logger.info("Datasets queue created");
   }
   return datasetQueue;
