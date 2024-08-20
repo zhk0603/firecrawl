@@ -44,7 +44,7 @@ export async function startWebScraperPipeline({
           jobId,
           {
             ...progress.currentDocument,
-            jobId: job.id.toString(),
+            jobId: job.data.crawl_id,
             status: "active",
           },
           {
@@ -60,7 +60,7 @@ export async function startWebScraperPipeline({
       getDatasetQueue().add(
         jobId,
         {
-          jobId: job.id.toString(),
+          jobId: job.data.crawl_id,
           status: "completed",
         },
         {
@@ -76,7 +76,7 @@ export async function startWebScraperPipeline({
       getDatasetQueue().add(
         jobId,
         {
-          jobId: job.id.toString(),
+          jobId: job.data.crawl_id,
           status: "failed",
         },
         {
