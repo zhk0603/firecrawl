@@ -83,7 +83,6 @@ export function crawlToCrawler(id: string, sc: StoredCrawl): WebCrawler {
         initialUrl: sc.originUrl,
         includes: sc.crawlerOptions?.includes ?? [],
         excludes: sc.crawlerOptions?.excludes ?? [],
-        maxCrawledLinks: sc.crawlerOptions?.maxCrawledLinks ?? 1000,
         maxCrawledDepth: sc.crawlerOptions?.maxDepth ?? 10,
         limit: sc.crawlerOptions?.limit ?? 10000,
         generateImgAltText: sc.crawlerOptions?.generateImgAltText ?? false,
