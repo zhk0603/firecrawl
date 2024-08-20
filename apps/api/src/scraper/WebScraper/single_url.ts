@@ -141,7 +141,9 @@ export async function scrapSingleUrl(
   extractorOptions: ExtractorOptions = {
     mode: "llm-extraction-from-markdown",
   },
-  existingHtml: string = ""
+  existingHtml: string = "",
+  priority?: number,
+  teamId?: string
 ): Promise<Document> {
   urlToScrap = urlToScrap.trim();
   Logger.debug(`urlToScrap: ${urlToScrap}`);
@@ -172,7 +174,7 @@ export async function scrapSingleUrl(
       case "fire-engine;chrome-cdp":  
 
         let engine: "playwright" | "chrome-cdp" | "tlsclient" = "playwright";
-        if(method === "fire-engine;chrome-cdp"){
+        if (method === "fire-engine;chrome-cdp") {
           engine = "chrome-cdp";
         }
 
@@ -186,7 +188,10 @@ export async function scrapSingleUrl(
             headers: pageOptions.headers,
             fireEngineOptions: {
               engine: engine,
-            }
+              atsv: pageOptions.atsv,
+            },
+            priority,
+            teamId,
           });
           scraperResponse.text = response.html;
           scraperResponse.screenshot = response.screenshot;
@@ -349,7 +354,7 @@ export async function scrapSingleUrl(
         Logger.debug(`⛏️ ${scraper}: Successfully scraped ${urlToScrap} with text length >= 100, breaking`);
         break;
       }
-      if (pageStatusCode && pageStatusCode == 404) {
+      if (pageStatusCode && (pageStatusCode == 404 || pageStatusCode == 500)) {
         Logger.debug(`⛏️ ${scraper}: Successfully scraped ${urlToScrap} with status code 404, breaking`);
         break;
       }
