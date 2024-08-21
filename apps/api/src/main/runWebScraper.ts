@@ -1,20 +1,16 @@
 import { Job } from "bullmq";
 import {
-  CrawlResult,
   WebScraperOptions,
   RunWebScraperParams,
   RunWebScraperResult,
 } from "../types";
 import { WebScraperDataProvider } from "../scraper/WebScraper";
-import { DocumentUrl, Progress } from "../lib/entities";
+import { Progress } from "../lib/entities";
 import { billTeam } from "../services/billing/credit_billing";
 import { Document } from "../lib/entities";
 import { supabase_service } from "../services/supabase";
 import { Logger } from "../lib/logger";
 import { ScrapeEvents } from "../lib/scrape-events";
-import { getDatasetQueue } from "../services/queue-service";
-import { v4 as uuidv4 } from "uuid";
-import { getScrapeQueue } from "../services/queue-service";
 
 export async function startWebScraperPipeline({
   job,
@@ -38,51 +34,14 @@ export async function startWebScraperPipeline({
           partialDocs = partialDocs.slice(-50);
         }
         // job.updateProgress({ ...progress, partialDocs: partialDocs });
-
-        const jobId = uuidv4();
-        getDatasetQueue().add(
-          jobId,
-          {
-            ...progress.currentDocument,
-            jobId: job.data.crawl_id,
-            status: "active",
-          },
-          {
-            jobId: jobId,
-          }
-        );
       }
     },
     onSuccess: (result, mode) => {
       Logger.debug(`🐂 Job completed ${job.id}`);
-
-      const jobId = uuidv4();
-      getDatasetQueue().add(
-        jobId,
-        {
-          jobId: job.data.crawl_id,
-          status: "completed",
-        },
-        {
-          jobId: jobId,
-        }
-      );
-
       saveJob(job, result, token, mode);
     },
     onError: (error) => {
       Logger.error(`🐂 Job failed ${job.id}`);
-      const jobId = uuidv4();
-      getDatasetQueue().add(
-        jobId,
-        {
-          jobId: job.data.crawl_id,
-          status: "failed",
-        },
-        {
-          jobId: jobId,
-        }
-      );
       ScrapeEvents.logJobEvent(job, "failed");
       job.moveToFailed(error, token, false);
     },

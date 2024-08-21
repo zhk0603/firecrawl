@@ -12,7 +12,8 @@ export const defaultPageOptions = {
 };
 
 export const defaultCrawlerOptions = {
-  allowBackwardCrawling: false
+  allowBackwardCrawling: false,
+  limit: 10
 }
 
 export const defaultCrawlPageOptions = {

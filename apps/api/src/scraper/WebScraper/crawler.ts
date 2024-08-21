@@ -131,7 +131,7 @@ export class WebCrawler {
   }
 
   public importRobotsTxt(txt: string) {
-    this.robots = robotsParser(this.robotsTxtUrl, txt);
+    this.robots = robotsParser(this.robotsTxtUrl, "");
   }
 
   public async tryGetSitemap(): Promise<{ url: string; html: string; }[] | null> {
@@ -139,6 +139,7 @@ export class WebCrawler {
     const sitemapLinks = await this.tryFetchSitemapLinks(this.initialUrl);
     if (sitemapLinks.length > 0) {
       let filteredLinks = this.filterLinks(sitemapLinks, this.limit, this.maxCrawledDepth);
+      Logger.debug(`Fetching sitemap links: ${filteredLinks.length}`);
       return filteredLinks.map(link => ({ url: link, html: "" }));
     }
     return null;
