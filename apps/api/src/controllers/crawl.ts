@@ -25,6 +25,7 @@ import {
 } from "../../src/lib/crawl-redis";
 import { getScrapeQueue } from "../../src/services/queue-service";
 import { checkAndUpdateURL } from "../../src/lib/validateUrl";
+import * as Sentry from "@sentry/node";
 
 export async function crawlController(req: Request, res: Response) {
   try {
@@ -56,17 +57,43 @@ export async function crawlController(req: Request, res: Response) {
     };
     const pageOptions = { ...defaultCrawlPageOptions, ...req.body.pageOptions };
 
-    const limitCheck = crawlerOptions?.limit ?? 1;
-    const { success: creditsCheckSuccess, message: creditsCheckMessage } =
+    if (Array.isArray(crawlerOptions.includes)) {
+      for (const x of crawlerOptions.includes) {
+        try {
+          new RegExp(x);
+        } catch (e) {
+          return res.status(400).json({ error: e.message });
+        }
+      }
+    }
+
+    if (Array.isArray(crawlerOptions.excludes)) {
+      for (const x of crawlerOptions.excludes) {
+        try {
+          new RegExp(x);
+        } catch (e) {
+          return res.status(400).json({ error: e.message });
+        }
+      }
+    }
+
+    const limitCheck = req.body?.crawlerOptions?.limit ?? 1;
+    const { success: creditsCheckSuccess, message: creditsCheckMessage, remainingCredits } =
       await checkTeamCredits(team_id, limitCheck);
 
     if (!creditsCheckSuccess) {
-      return res.status(402).json({ error: "Insufficient credits" });
+      return res.status(402).json({ error: "Insufficient credits. You may be requesting with a higher limit than the amount of credits you have left. If not, upgrade your plan at https://firecrawl.dev/pricing or contact us at hello@firecrawl.com" });
     }
 
+    // TODO: need to do this to v1
+    crawlerOptions.limit = Math.min(remainingCredits, crawlerOptions.limit);
+    
     let url = req.body.url;
     if (!url) {
       return res.status(400).json({ error: "Url is required" });
+    }
+    if (typeof url !== "string") {
+      return res.status(400).json({ error: "URL must be a string" });
     }
     try {
       url = checkAndUpdateURL(url).url;
@@ -82,8 +109,6 @@ export async function crawlController(req: Request, res: Response) {
           "Firecrawl currently does not support social media scraping due to policy restrictions. We're actively working on building support for it.",
       });
     }
-
-    const mode = req.body.mode ?? "crawl";
 
     // if (mode === "single_urls" && !url.includes(",")) { // NOTE: do we need this?
     //   try {
@@ -138,7 +163,7 @@ export async function crawlController(req: Request, res: Response) {
       ? null
       : await crawler.tryGetSitemap();
 
-    if (sitemap !== null) {
+    if (sitemap !== null && sitemap.length > 0) {
       const jobs = sitemap.map((x) => {
         const url = x.url;
         const uuid = uuidv4();
@@ -169,7 +194,14 @@ export async function crawlController(req: Request, res: Response) {
         id,
         jobs.map((x) => x.opts.jobId)
       );
-      await getScrapeQueue().addBulk(jobs);
+      if (Sentry.isInitialized()) {
+        for (const job of jobs) {
+          // add with sentry instrumentation
+          await addScrapeJob(job.data as any, {}, job.opts.jobId);
+        }
+      } else {
+        await getScrapeQueue().addBulk(jobs);
+      }
     } else {
       await lockURL(id, sc, url);
       const job = await addScrapeJob(
@@ -191,6 +223,7 @@ export async function crawlController(req: Request, res: Response) {
 
     res.json({ jobId: id });
   } catch (error) {
+    Sentry.captureException(error);
     Logger.error(error);
     return res.status(500).json({ error: error.message });
   }

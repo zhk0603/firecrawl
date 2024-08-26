@@ -1,9 +1,8 @@
 import { Request, Response } from "express";
 import { Logger } from "../../src/lib/logger";
 import { getCrawl, getCrawlJobs } from "../../src/lib/crawl-redis";
-import { getScrapeQueue } from "../../src/services/queue-service";
-import { supabaseGetJobById } from "../../src/lib/supabase-jobs";
 import { getJobs } from "./crawl-status";
+import * as Sentry from "@sentry/node";
 
 export async function crawlJobStatusPreviewController(req: Request, res: Response) {
   try {
@@ -37,6 +36,7 @@ export async function crawlJobStatusPreviewController(req: Request, res: Respons
       partial_data: jobStatus === "completed" ? [] : data.filter(x => x !== null),
     });
   } catch (error) {
+    Sentry.captureException(error);
     Logger.error(error);
     return res.status(500).json({ error: error.message });
   }

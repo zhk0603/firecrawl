@@ -5,6 +5,7 @@ import { generateRequestParams } from "../single_url";
 import { fetchAndProcessPdf } from "../utils/pdfProcessor";
 import { universalTimeout } from "../global";
 import { Logger } from "../../../lib/logger";
+import * as Sentry from "@sentry/node";
 
 /**
  * Scrapes a URL with Fire-Engine
@@ -73,7 +74,6 @@ export async function scrapWithFireEngine({
     );
 
     if (pageOptions?.useFastMode) {
-      console.log('using tlsclient')
       fireEngineOptionsParam.engine = "tlsclient";
       engine = "tlsclient";
     }
@@ -81,55 +81,93 @@ export async function scrapWithFireEngine({
     // atsv is only available for beta customers
     const betaCustomersString = process.env.BETA_CUSTOMERS;
     const betaCustomers = betaCustomersString ? betaCustomersString.split(",") : [];
+
     if (pageOptions?.atsv && betaCustomers.includes(teamId)) {
       fireEngineOptionsParam.atsv = true;
     } else {
       pageOptions.atsv = false;
     }
 
-    const response = await axios.post(
-      process.env.FIRE_ENGINE_BETA_URL + endpoint,
-      {
-        url: url,
-        wait: waitParam,
-        screenshot: screenshotParam,
-        fullPageScreenshot: fullPageScreenshotParam,
-        headers: headers,
-        pageOptions: pageOptions,
-        disableJsDom: pageOptions?.disableJsDom ?? false,
-        priority,
-        engine,
-        ...fireEngineOptionsParam,
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        timeout: universalTimeout + waitParam,
-      }
-    );
+    const axiosInstance = axios.create({
+      headers: { "Content-Type": "application/json" }
+    });
 
-    if (response.status !== 200) {
+    const startTime = Date.now();
+    const _response = await Sentry.startSpan({
+      name: "Call to fire-engine"
+    }, async span => {
+      return await axiosInstance.post(
+        process.env.FIRE_ENGINE_BETA_URL + endpoint,
+        {
+          url: url,
+          wait: waitParam,
+          screenshot: screenshotParam,
+          fullPageScreenshot: fullPageScreenshotParam,
+          headers: headers,
+          pageOptions: pageOptions,
+          disableJsDom: pageOptions?.disableJsDom ?? false,
+          priority,
+          engine,
+          instantReturn: true,
+          ...fireEngineOptionsParam,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(Sentry.isInitialized() ? ({
+                "sentry-trace": Sentry.spanToTraceHeader(span),
+                "baggage": Sentry.spanToBaggageHeader(span),
+            }) : {}),
+          }
+        }
+      );
+    });
+
+    let checkStatusResponse = await axiosInstance.get(`${process.env.FIRE_ENGINE_BETA_URL}/scrape/${_response.data.jobId}`);
+    while (checkStatusResponse.data.processing && Date.now() - startTime < universalTimeout + waitParam) {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // wait 1 second
+      checkStatusResponse = await axiosInstance.get(`${process.env.FIRE_ENGINE_BETA_URL}/scrape/${_response.data.jobId}`);
+    }
+
+    if (checkStatusResponse.data.processing) {
+      Logger.debug(`⛏️ Fire-Engine (${engine}): deleting request - jobId: ${_response.data.jobId}`);
+      axiosInstance.delete(
+        process.env.FIRE_ENGINE_BETA_URL + `/scrape/${_response.data.jobId}`, {
+          validateStatus: (status) => true
+        }
+      ).catch((error) => {
+        Logger.debug(`⛏️ Fire-Engine (${engine}): Failed to delete request - jobId: ${_response.data.jobId} | error: ${error}`);        
+      });
+      
+      Logger.debug(`⛏️ Fire-Engine (${engine}): Request timed out for ${url}`);
+      logParams.error_message = "Request timed out";
+      return { html: "", screenshot: "", pageStatusCode: null, pageError: "" };
+    }
+
+    if (checkStatusResponse.status !== 200 || checkStatusResponse.data.error) {
       Logger.debug(
-        `⛏️ Fire-Engine (${engine}): Failed to fetch url: ${url} \t status: ${response.status}`
+        `⛏️ Fire-Engine (${engine}): Failed to fetch url: ${url} \t status: ${checkStatusResponse.status}`
       );
       
-      logParams.error_message = response.data?.pageError;
-      logParams.response_code = response.data?.pageStatusCode;
+      logParams.error_message = checkStatusResponse.data?.pageError ?? checkStatusResponse.data?.error;
+      logParams.response_code = checkStatusResponse.data?.pageStatusCode;
 
-      if(response.data && response.data?.pageStatusCode !== 200) {
-        Logger.debug(`⛏️ Fire-Engine (${engine}): Failed to fetch url: ${url} \t status: ${response.status}`);
+      if(checkStatusResponse.data && checkStatusResponse.data?.pageStatusCode !== 200) {
+        Logger.debug(`⛏️ Fire-Engine (${engine}): Failed to fetch url: ${url} \t status: ${checkStatusResponse.data?.pageStatusCode}`);
       }
+
+      const pageStatusCode = checkStatusResponse.data?.pageStatusCode ? checkStatusResponse.data?.pageStatusCode : checkStatusResponse.data?.error && checkStatusResponse.data?.error.includes("Dns resolution error for hostname") ? 404 : undefined;
 
       return {
         html: "",
         screenshot: "",
-        pageStatusCode: response.data?.pageStatusCode,
-        pageError: response.data?.pageError,
+        pageStatusCode,
+        pageError: checkStatusResponse.data?.pageError ?? checkStatusResponse.data?.error,
       };
     }
 
-    const contentType = response.headers["content-type"];
+    const contentType = checkStatusResponse.data.responseHeaders?.["content-type"];
+
     if (contentType && contentType.includes("application/pdf")) {
       const { content, pageStatusCode, pageError } = await fetchAndProcessPdf(
         url,
@@ -140,18 +178,19 @@ export async function scrapWithFireEngine({
       logParams.error_message = pageError;
       return { html: content, screenshot: "", pageStatusCode, pageError };
     } else {
-      const data = response.data;
+      const data = checkStatusResponse.data;
+      
       logParams.success =
         (data.pageStatusCode >= 200 && data.pageStatusCode < 300) ||
         data.pageStatusCode === 404;
       logParams.html = data.content ?? "";
       logParams.response_code = data.pageStatusCode;
-      logParams.error_message = data.pageError;
+      logParams.error_message = data.pageError ?? data.error;
       return {
         html: data.content ?? "",
         screenshot: data.screenshot ?? "",
         pageStatusCode: data.pageStatusCode,
-        pageError: data.pageError,
+        pageError: data.pageError ?? data.error,
       };
     }
   } catch (error) {
