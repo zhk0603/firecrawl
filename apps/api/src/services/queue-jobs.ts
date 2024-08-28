@@ -4,12 +4,23 @@ import { v4 as uuidv4 } from "uuid";
 import { WebScraperOptions } from "../types";
 import * as Sentry from "@sentry/node";
 
+const defaultOptions = {
+  removeOnComplete: {
+    age: 24 * 3600,  // 24 hours in seconds
+    count: 10000
+  },
+  removeOnFail: {
+    age: 7 * 24 * 3600  // 7 days in seconds
+  }
+};
+
 async function addScrapeJobRaw(
   webScraperOptions: any,
   options: any,
   jobId: string,
 ): Promise<Job> {
   return await getScrapeQueue().add(jobId, webScraperOptions, {
+    ...defaultOptions,
     ...options,
     priority: webScraperOptions.crawl_id ? 20 : 10,
     jobId,
@@ -57,6 +68,7 @@ export async function addCrawlDataJob(crawl_id:any, doc:any, status: string, job
     {
       priority: 10,
       jobId: jobId,
+      ...defaultOptions
     }
   );
 }
@@ -71,6 +83,7 @@ export async function reportCrawlJobStatus(crawl_id:any, status: string, jobId:s
     {
       priority: 20,
       jobId: jobId,
+      ...defaultOptions
     }
   );
 }
