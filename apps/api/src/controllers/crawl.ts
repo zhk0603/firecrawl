@@ -86,7 +86,7 @@ export async function crawlController(req: Request, res: Response) {
     }
 
     // TODO: need to do this to v1
-    crawlerOptions.limit = Math.min(remainingCredits, crawlerOptions.limit);
+    // crawlerOptions.limit = Math.min(remainingCredits, crawlerOptions.limit);
     
     let url = req.body.url;
     if (!url) {

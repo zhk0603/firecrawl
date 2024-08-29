@@ -11,4 +11,4 @@ RUN echo "deb http://mirrors.aliyun.com/debian/ bookworm main contrib non-free" 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 LABEL fly_launch_runtime="Node.js"
-RUN corepack enable
+RUN npm install -g pnpm@9.6.0 --registry=https://registry.npmmirror.com

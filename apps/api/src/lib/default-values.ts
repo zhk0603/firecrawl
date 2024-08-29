@@ -8,7 +8,8 @@ export const defaultPageOptions = {
   waitFor: 0,
   screenshot: false,
   fullPageScreenshot: false,
-  parsePDF: true
+  parsePDF: true,
+  replaceAllPathsWithAbsolutePaths: true
 };
 
 export const defaultCrawlerOptions = {
@@ -20,7 +21,8 @@ export const defaultCrawlPageOptions = {
   onlyMainContent: false,
   includeHtml: false,
   removeTags: [],
-  parsePDF: true
+  parsePDF: true,
+  replaceAllPathsWithAbsolutePaths: true
 }
 
 export const defaultExtractorOptions = {

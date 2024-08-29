@@ -8,7 +8,6 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-l
 FROM base AS build
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
-RUN apt-get update -qq && apt-get install -y ca-certificates && update-ca-certificates
 RUN pnpm config set registry https://registry.npmmirror.com
 RUN pnpm install
 RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
