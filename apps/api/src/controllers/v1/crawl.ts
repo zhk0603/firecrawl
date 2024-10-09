@@ -60,7 +60,7 @@ export async function crawlController(
     }
   }
 
-  crawlerOptions.limit = Math.min(remainingCredits, crawlerOptions.limit);
+  // crawlerOptions.limit = Math.min(remainingCredits, crawlerOptions.limit);
   
   const sc: StoredCrawl = {
     originUrl: req.body.url,
