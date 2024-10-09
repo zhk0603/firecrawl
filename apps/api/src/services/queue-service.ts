@@ -17,6 +17,14 @@ export function getScrapeQueue() {
       scrapeQueueName,
       {
         connection: redisConnection,
+        defaultJobOptions: {
+          removeOnComplete: {
+            age: 90000, // 25 hours
+          },
+          removeOnFail: {
+            age: 90000, // 25 hours
+          },
+        },
       }
       //   {
       //   settings: {

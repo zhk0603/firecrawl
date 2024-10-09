@@ -106,6 +106,7 @@ export async function crawlController(
           url,
           mode: "single_urls",
           team_id: req.auth.team_id,
+          plan: req.auth.plan,
           crawlerOptions,
           pageOptions,
           origin: "api",
@@ -138,6 +139,7 @@ export async function crawlController(
         mode: "single_urls",
         crawlerOptions: crawlerOptions,
         team_id: req.auth.team_id,
+        plan: req.auth.plan,
         pageOptions: pageOptions,
         origin: "api",
         crawl_id: id,
@@ -155,10 +157,12 @@ export async function crawlController(
     await callWebhook(req.auth.team_id, id, null, req.body.webhook, true, "crawl.started");
   }
 
+  const protocol = process.env.ENV === "local" ? req.protocol : "https";
+  
   return res.status(200).json({
     success: true,
     id,
-    url: `${req.protocol}://${req.get("host")}/v1/crawl/${id}`,
+    url: `${protocol}://${req.get("host")}/v1/crawl/${id}`,
   });
 }
 

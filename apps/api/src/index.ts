@@ -192,6 +192,10 @@ if (cluster.isMaster) {
 
   app.use((err: unknown, req: Request<{}, ErrorResponse, undefined>, res: Response<ErrorResponse>, next: NextFunction) => {
     if (err instanceof ZodError) {
+        if (Array.isArray(err.errors) && err.errors.find(x => x.message === "URL uses unsupported protocol")) {
+          Logger.warn("Unsupported protocol error: " + JSON.stringify(req.body));
+        }
+
         res.status(400).json({ success: false, error: "Bad Request", details: err.errors });
     } else {
         next(err);
@@ -201,16 +205,20 @@ if (cluster.isMaster) {
   Sentry.setupExpressErrorHandler(app);
 
   app.use((err: unknown, req: Request<{}, ErrorResponse, undefined>, res: ResponseWithSentry<ErrorResponse>, next: NextFunction) => {
+    if (err instanceof SyntaxError && 'status' in err && err.status === 400 && 'body' in err) {
+      return res.status(400).json({ success: false, error: 'Bad request, malformed JSON' });
+    }
+
     const id = res.sentry ?? uuidv4();
     let verbose = JSON.stringify(err);
     if (verbose === "{}") {
-        if (err instanceof Error) {
-            verbose = JSON.stringify({
-                message: err.message,
-                name: err.name,
-                stack: err.stack,
-            });
-        }
+      if (err instanceof Error) {
+        verbose = JSON.stringify({
+          message: err.message,
+          name: err.name,
+          stack: err.stack,
+        });
+      }
     }
 
     Logger.error("Error occurred in request! (" + req.path + ") -- ID " + id  + " -- " + verbose);
